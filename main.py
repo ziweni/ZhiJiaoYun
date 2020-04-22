@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import os
+import yaml
 import json
 import math
 import time
@@ -13,6 +14,20 @@ from Util import print_list, print_tree
 
 if __name__ == "__main__":
 
+    try:
+        # 读取配置文件
+        with open("config.yml", "r", encoding='utf-8') as f:
+            data = f.read()
+        # 加载配置文件
+        config = yaml.safe_load(data)
+    except IOError:
+        print("❌ 初始化时出现错误：没找到配置文件！")
+        exit(-1)
+    except yaml.YAMLError as exc:
+        print("❌ 初始化时出现错误：配置文件异常！")
+        exit(-2)
+
+    # 初始化网课操作对象
     obj = ZhiJiao()
 
     print("开始登陆……")
@@ -20,17 +35,25 @@ if __name__ == "__main__":
     if os.path.exists("cookies.json"):
         with open("cookies.json", "r", encoding='utf-8') as f:
             js = f.read()
+        # 设置 Cookies
         obj.set_cookie(js)
-    # 登陆
-    elif obj.login_m("user", "pass"):
-        ck = json.dumps(obj.s.cookies.items())
 
-        f = open("cookies.json", "w", encoding='utf-8')
-        f.write(ck)
-        f.close()
-    else:
-        print("登陆失败！")
-        exit(-1)
+    # 取一下数据，查看 Cookies 是否有效
+    if len(obj.s.cookies.items()) == 0 or not ('courseList' in obj.getCourseList()):
+        # 登陆
+        if obj.login_m(str(config['member']['user']), str(config['member']['pass'])):
+            if config['saveCookies']:
+                # 获取 Cookies
+                ck = json.dumps(obj.s.cookies.items())
+                # 保存到文件
+                f = open("cookies.json", "w", encoding='utf-8')
+                f.write(ck)
+                f.close()
+        else:
+            print("登陆失败！")
+            exit(-3)
+
+    userId = obj.getUserInfo()['stuId']
 
     print("正在获取课程列表……")
     course = obj.getCourseList()['courseList']
@@ -39,9 +62,15 @@ if __name__ == "__main__":
     print_list(course)
 
     while True:
-        # 要求输入
-        id = int(input("课程id: "))
-
+        # 异常输入判断
+        try:
+            # 要求输入
+            id = int(input("课程id: "))
+        except ValueError:
+            print("您输入的数据不符合规范！")
+            continue
+        if id == -1:
+            exit(0)
         if id >= len(course) or id < 0:
             print("课程id不存在！")
             continue
@@ -87,8 +116,8 @@ if __name__ == "__main__":
 
                 # 判断多开
                 if info['code'] == -100:
-                    print("\n❓ 因服务器限制，您只可以同时学习一门课程！")
-                    action = input("是否继续学习？(yes/no): ")
+                    print("\n⚠️ 因服务器限制，您只可以同时学习一门课程！")
+                    action = input("❓ 是否继续学习？(yes/no): ")
                     if action != "yes":
                         exit(0)
                     
@@ -169,13 +198,36 @@ if __name__ == "__main__":
                     if not res:
                         print("🚫 该视频任务因数据上报异常而终止!")
                     else:
+                        # 获取这个视频的评论列表
+                        comment = obj.getComment(courseOpenId, openClassId, moduleId, cellId)
+                    
+                        exit = False
+
+                        # 判断视频是否评论
+                        for item4 in comment:
+                            if item4['userId'] == userId:
+                                exit = True
+                                break
+                        
+                        # 判断是否评论
+                        if not exit:
+
+                            size = len(config['commentList'])
+
+                            rand = random.randint(0, size - 1)
+
+                            content = config['commentList'][rand]
+
+                            star = config['videoStar']
+
+                            # 执行评论
+                            obj.commentVideo(courseOpenId, openClassId, cellId, moduleId, content, star)
+                        
                         print("🎉 视频 《%s》 已完成!" % item2['cellName'])
 
                 elif task_type == '链接':
                     print("🔗 链接 《%s》 已完成!" % item2['cellName'])
                 elif task_type == '图片':
                     print("🖼 图片 《%s》 已完成!" % item2['cellName'])
-                elif task_type == '':
-                    pass
 
-    print("🎉 你已完成了本课的所有课程！")
+    print("\n🎉 你已完成了本课的所有课程！")
