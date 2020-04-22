@@ -198,30 +198,31 @@ if __name__ == "__main__":
                     if not res:
                         print("🚫 该视频任务因数据上报异常而终止!")
                     else:
-                        # 获取这个视频的评论列表
-                        comment = obj.getComment(courseOpenId, openClassId, moduleId, cellId)
+                        if config['videoComment']:
+                            # 获取这个视频的评论列表
+                            comment = obj.getComment(courseOpenId, openClassId, moduleId, cellId)
                     
-                        exit = False
+                            exit = False
 
-                        # 判断视频是否评论
-                        for item4 in comment:
-                            if item4['userId'] == userId:
-                                exit = True
-                                break
+                            # 判断视频是否评论
+                            for item4 in comment:
+                                if item4['userId'] == userId:
+                                    exit = True
+                                    break
                         
-                        # 判断是否评论
-                        if not exit:
+                            # 判断是否评论
+                            if not exit:
 
-                            size = len(config['commentList'])
+                                size = len(config['commentList'])
 
-                            rand = random.randint(0, size - 1)
+                                rand = random.randint(0, size - 1)
 
-                            content = config['commentList'][rand]
+                                content = config['commentList'][rand]
 
-                            star = config['videoStar']
+                                star = config['videoStar']
 
-                            # 执行评论
-                            obj.commentVideo(courseOpenId, openClassId, cellId, moduleId, content, star)
+                                # 执行评论
+                                obj.commentVideo(courseOpenId, openClassId, cellId, moduleId, content, star)
                         
                         print("🎉 视频 《%s》 已完成!" % item2['cellName'])
 
