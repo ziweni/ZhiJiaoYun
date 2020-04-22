@@ -26,11 +26,13 @@ def print_list(obj):
     if len(obj) == 0:
         return
     print("------------------------------------")
-    print("| id | 课程名称")
+    print("│ id | 课程名称")
     index = 0
     for item in obj:
         print("| %2d | %-s  %d%%" % (index, item['courseName'], item['process']))
         index = index + 1
+    print("------------------------------------")
+    print("| 退出请输入 -1")
     print("------------------------------------")
 
 def print_tree(obj):
