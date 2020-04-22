@@ -177,25 +177,38 @@ class ZhiJiao:
                 i = i + 1
                 continue
 
-            uri = "https://zjy2.icve.com.cn/api/study/process/getTopicByModuleId"
             # 获取二级模块id
             moduleId = item['id']
-            # 获取二级目录
-            r = self.s.post(uri, headers=headers, data=obj2str({
-                'courseOpenId': courseOpenId,
-                'moduleId': moduleId
-            }))
-
-            ret2 = json.loads(r.text)
-
-            if ret2['code'] != 1:
-                raise Exception("获取目录时，出现异常!")
+            
+            ret2 = self.getLevelCata(courseOpenId, moduleId)
 
             ret['progress']['moduleList'][i]['data'] = ret2['topicList']
 
             i = i + 1
 
         return ret['progress']['moduleList']
+
+    def getLevelCata(self, courseOpenId, moduleId):
+        
+        uri = "https://zjy2.icve.com.cn/api/study/process/getTopicByModuleId"
+
+        headers = {
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Accept-Encoding': 'gzip, deflate, br',
+        }
+
+        # 获取二级目录
+        r = self.s.post(uri, headers=headers, data=obj2str({
+            'courseOpenId': courseOpenId,
+            'moduleId': moduleId
+        }))
+
+        ret = json.loads(r.text)
+
+        if ret['code'] != 1:
+            raise Exception("获取目录时，出现异常!")
+
+        return ret
 
     # 获取二级目录的视频
     def getData(self, courseOpenId, openClassId, topicId):
@@ -274,6 +287,7 @@ class ZhiJiao:
 
         return ret['code'] == 1
 
+    # 确认任务
     def choiceCourse(self, courseOpenId, openClassId, cellId, moduleId, cellName):
 
         uri = "https://zjy2.icve.com.cn/api/common/Directory/changeStuStudyProcessCellData"
@@ -297,4 +311,104 @@ class ZhiJiao:
         r = self.s.post(uri, headers=headers, data=data)
 
         ret = json.loads(r.text)
+        return ret['code'] == 1
+    
+    # 取用户用户信息
+    def getUserInfo(self):
+
+        uri = "https://zjy2.icve.com.cn/api/student/Studio/index"
+
+        r = self.s.post(uri)
+
+        ret = json.loads(r.text)
+
+        return ret
+
+    # 获取视频评论
+    def getComment(self, courseOpenId, openClassId, moduleId, cellId):
+
+        uri = "https://zjy2.icve.com.cn/api/common/Directory/getCellCommentData"
+
+        headers = {
+            'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
+            'Accept-Encoding': "gzip, deflate, br",
+            'Origin': "https://zjy2.icve.com.cn",
+            'X-Requested-With': "XMLHttpRequest",
+            'Referer': "https://zjy2.icve.com.cn/common/directory/directory.html?courseOpenId=%s&openClassId=%s&cellId=%s&flag=s&moduleId=%s" % (courseOpenId, openClassId, cellId, moduleId)
+        }
+
+        data = obj2str({
+            'courseOpenId': courseOpenId,
+            'openClassId': openClassId,
+            'cellId': cellId,
+            'type': "0",
+        })
+
+        r = self.s.post(uri, headers=headers, data=data)
+
+        ret = json.loads(r.text)
+
+        if ret['code'] != 1:
+            return []
+
+        size = ret['pagination']['totalCount']
+
+        if size <= 8:
+            return ret['list']
+
+        uri = "https://zjy2.icve.com.cn/common/Directory/getCellCommentData"
+
+        listData = ret['list']
+
+        index = 1
+
+        while index * 8 < size:
+
+            index = index + 1
+
+            data = obj2str({
+                'courseOpenId': courseOpenId,
+                'openClassId': openClassId,
+                'cellId': cellId,
+                'type': "0",
+                'pageSize': 8,
+                'page': index
+            })
+
+            r = self.s.post(uri, headers=headers, data=data)
+
+            ret = json.loads(r.text)
+
+            for z in ret['list']:
+                listData.insert(len(listData), z)
+
+        return listData
+
+    # 给视频课程进行评论
+    def commentVideo(self, courseOpenId, openClassId, cellId, moduleId, content, star):
+
+        uri = "https://zjy2.icve.com.cn/api/common/Directory/addCellActivity"
+
+        headers = {
+            'Content-Type': "application/x-www-form-urlencoded; charset=UTF-8",
+            'Accept-Encoding': "gzip, deflate, br",
+            'Origin': "https://zjy2.icve.com.cn",
+            'X-Requested-With': "XMLHttpRequest",
+            'Referer': "https://zjy2.icve.com.cn/common/directory/directory.html?courseOpenId=%s&openClassId=%s&cellId=%s&flag=s&moduleId=%s" % (courseOpenId, openClassId, cellId, moduleId)
+        }
+
+        data = obj2str({
+            'courseOpenId': courseOpenId,
+            'openClassId': openClassId,
+            'cellId': cellId,
+            'content': content,
+            'docJson': "",
+            'star': star,
+            'activityType': 1
+        }).encode(encoding="utf-8")
+
+        r = self.s.post(uri, headers=headers, data=data)
+
+        ret = json.loads(r.text)
+
         return ret['code'] == 1
