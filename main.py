@@ -40,6 +40,8 @@ if __name__ == "__main__":
 
     # 取一下数据，查看 Cookies 是否有效
     if len(obj.s.cookies.items()) == 0 or not ('courseList' in obj.getCourseList()):
+        # 清空Cookies
+        obj.s.cookies.clear()
         # 登陆
         if obj.login_m(str(config['member']['user']), str(config['member']['pass'])):
             if config['saveCookies']:
