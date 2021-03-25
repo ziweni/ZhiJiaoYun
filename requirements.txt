@@ -11,7 +11,7 @@ numpy==1.18.2
 opencv-python==4.2.0.34
 pycodestyle==2.5.0
 pylint==2.4.4
-PyYAML==5.3.1
+PyYAML==5.4
 requests==2.23.0
 six==1.14.0
 urllib3==1.25.8
